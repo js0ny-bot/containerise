@@ -171,6 +171,28 @@ describe('containers', () => {
     expect(global.browser.tabs.remove).toHaveBeenCalledWith(1);
   });
 
+  it('does not reopen a view-source navigation', async () => {
+    storage.data = {
+      'pref=defaultContainer': {key: 'defaultContainer', value: true},
+      'pref=defaultContainer.containerName': {
+        key: 'defaultContainer.containerName',
+        value: '~{domain}.{tld}',
+      },
+    };
+    global.browser.tabs.get.mockImplementation(() => Promise.resolve(tab()));
+
+    const result = await webRequestListener({
+      frameId: 0,
+      tabId: 1,
+      url: 'view-source:https://example.com/',
+    });
+
+    expect(result).toBeUndefined();
+    expect(global.browser.tabs.create).not.toHaveBeenCalled();
+    expect(global.browser.tabs.remove).not.toHaveBeenCalled();
+    expect(global.browser.contextualIdentities.create).not.toHaveBeenCalled();
+  });
+
   it('does not close the current tab when the replacement cannot be created', async () => {
     storage.data = {
       'pref=keepOldTabs': {key: 'keepOldTabs', value: false},
