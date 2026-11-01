@@ -31,14 +31,14 @@ Install the latest release for Firefox from [AMO](https://addons.mozilla.org/en-
 
 Firefox enterprise policy can supply rules that the popup will not edit. The policy key is `3rdparty.Extensions.<extension id>`. Firefox copies that object into `browser.storage.managed`. No `managed_schema.json` is required. A change to the policy applies after the browser restarts.
 
-The extension id shipped here is `containerise@kinte.sh`. A fork has to use its own id in the manifest, and the policy key has to be that same id. This repository does not change the id.
+The extension id is `containerise-managed@js0ny.net`. The enterprise policy key has to be that id. A further fork has to choose its own id in the manifest, and its policy key has to match that id.
 
 ```json
 {
   "policies": {
     "3rdparty": {
       "Extensions": {
-        "containerise@kinte.sh": {
+        "containerise-managed@js0ny.net": {
           "rules": [
             {"host": "example.com", "container": "Work"},
             {"host": "!*.example.org", "container": "Work"},
@@ -56,7 +56,7 @@ The extension id shipped here is `containerise@kinte.sh`. A fork has to use its 
 On NixOS, `programs.firefox.policies` is that `policies` object:
 
 ```nix
-programs.firefox.policies."3rdparty".Extensions."containerise@kinte.sh".rules = [
+programs.firefox.policies."3rdparty".Extensions."containerise-managed@js0ny.net".rules = [
   {
     host = "example.com";
     container = "Work";
