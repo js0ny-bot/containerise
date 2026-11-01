@@ -85,7 +85,9 @@ export const matchesSavedMap = (url, matchDomainOnly, {host}) => {
   if (host[0] === PREFIX_REGEX) {
     const regex = host.substr(1);
     try {
-      return new RegExp(regex).test(toMatch);
+      // Rules are stored in lowercase, so the test has to ignore case or
+      // an uppercase character in the URL never matches.
+      return new RegExp(regex, 'i').test(toMatch);
     } catch (e) {
       console.error('couldn\'t test regex', regex, e);
     }
@@ -95,7 +97,7 @@ export const matchesSavedMap = (url, matchDomainOnly, {host}) => {
     // 2. ? becomes .?
     return new RegExp(host.substr(1)
         .replace(/\*/g, '.*')
-        .replace(/\?/g, '.?'))
+        .replace(/\?/g, '.?'), 'i')
         .test(toMatch);
   } else {
     const key = urlKeyFromUrl(urlO);

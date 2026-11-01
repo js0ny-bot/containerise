@@ -126,6 +126,44 @@ describe('utils', () => {
     test();
     describe('with matchDomainOnly', test(true));
 
+    describe('uppercase characters', () => {
+      it('matches a lowercased regex against uppercase characters in the URL', () => {
+        expect(utils.matchesSavedMap(
+            'https://signin.ebay.com/ws/eBayISAPI.dll?SignIn&AppName=ImpactEP-EPN',
+            false, {
+              host: '@https?:\\/{2}signin\\.ebay\\.com\\/.+appname=impactep-epn.*',
+            })
+        ).toBe(true);
+      });
+
+      it('matches a lowercased glob against uppercase characters in the URL', () => {
+        expect(utils.matchesSavedMap(
+            'https://GitHub.com/User/Repo',
+            false, {
+              host: '!github.com/user/*',
+            })
+        ).toBe(true);
+      });
+
+      it('matches a lowercased path rule against uppercase characters in the URL', () => {
+        expect(utils.matchesSavedMap(
+            'https://example.com/Foo/Bar',
+            false, {
+              host: 'example.com/foo/bar',
+            })
+        ).toBe(true);
+      });
+
+      it('matches a lowercased host against an uppercase host', () => {
+        expect(utils.matchesSavedMap(
+            'https://Example.COM/Foo',
+            false, {
+              host: 'example.com',
+            })
+        ).toBe(true);
+      });
+    });
+
   });
 
 });
