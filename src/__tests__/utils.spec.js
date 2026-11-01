@@ -6,6 +6,23 @@ describe('utils', () => {
 
   const utils = require('../utils');
 
+  describe('cleanHostInput', () => {
+    it('leaves a regex source unchanged, including letter escapes', () => {
+      expect(utils.cleanHostInput('  @^https://Example\\.com/\\S+\\D+$  '))
+          .toBe('@^https://Example\\.com/\\S+\\D+$');
+    });
+
+    it('lowercases a glob without rewriting a backslash escape', () => {
+      expect(utils.cleanHostInput('!*.Example.COM/\\S+'))
+          .toBe('!*.example.com/\\S+');
+    });
+
+    it('lowercases a plain host', () => {
+      expect(utils.cleanHostInput(' Example.COM/Foo '))
+          .toBe('example.com/foo');
+    });
+  });
+
   describe('formatString', () => {
     it('should return same string without variables', function () {
       const string = 'Farouq Nadeeb';
@@ -161,6 +178,21 @@ describe('utils', () => {
               host: 'example.com',
             })
         ).toBe(true);
+      });
+    });
+
+    describe('regex escapes', () => {
+      it('treats \\D as non-digit and still ignores case', () => {
+        const host = utils.cleanHostInput('@^https://Example\\.com/\\D+$');
+        expect(host).toBe('@^https://Example\\.com/\\D+$');
+        expect(utils.matchesSavedMap('https://example.com/Ab', false, {host})).toBe(true);
+        expect(utils.matchesSavedMap('https://example.com/12', false, {host})).toBe(false);
+      });
+
+      it('treats \\S as non-whitespace', () => {
+        const host = utils.cleanHostInput('@^https://example\\.com/\\S+$');
+        expect(host).toBe('@^https://example\\.com/\\S+$');
+        expect(utils.matchesSavedMap('https://example.com/File', false, {host})).toBe(true);
       });
     });
 
