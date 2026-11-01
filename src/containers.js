@@ -14,11 +14,13 @@ const IGNORED_URLS_REGEX = /^(about|moz-extension|file|javascript|data|chrome):/
  */
 const creatingTabs = {};
 
-const createTab = (url, newTabIndex, currentTabId, openerTabId, cookieStoreId) => {
-  Tabs.get(currentTabId).then((currentTab) => {
+const createTab = async (url, newTabIndex, currentTabId, openerTabId, cookieStoreId) => {
+  try {
+    const currentTab = await Tabs.get(currentTabId);
     const createOptions = {
       url,
       index: newTabIndex,
+      windowId: currentTab.windowId,
       cookieStoreId,
       active: currentTab.active,
       pinned: currentTab.pinned,
@@ -30,30 +32,36 @@ const createTab = (url, newTabIndex, currentTabId, openerTabId, cookieStoreId) =
     if (cookieStoreId && openerTabId) {
       createOptions.openerTabId = openerTabId;
     }
-    Tabs.create(createOptions).then((createdTab) => {
-      creatingTabs[createdTab.id] = url;
-      if (!cookieStoreId && openerTabId) {
-        Tabs.update(createdTab.id, {
-          openerTabId: openerTabId,
-        });
-      }
-    });
-    PreferenceStorage.get('keepOldTabs').then(({value}) => {
-      // if keepOldTabs is false, remove the 'old' tab
-      // -or-
-      // if the current tab is about:blank or about:newtab
-      // or some custom moz-extension pages
-      // we should still close the current tab even though
-      // keepOldTabs is true, because these are just
-      // interstitial tabs that are no longer used
-      if (!value || /^(about:)|(moz-extension:)/.test(currentTab.url)) {
-        Tabs.remove(currentTabId);
-      }
-    }).catch(() => {
-      Tabs.remove(currentTabId);
-    });
-
-  });
+    // Create the replacement before closing the current tab. Closing the
+    // only tab closes the window, and the new tab never appears.
+    const createdTab = await Tabs.create(createOptions);
+    creatingTabs[createdTab.id] = url;
+    if (!cookieStoreId && openerTabId) {
+      Tabs.update(createdTab.id, {
+        openerTabId: openerTabId,
+      });
+    }
+    let keepOldTabs = false;
+    try {
+      const preference = await PreferenceStorage.get('keepOldTabs');
+      keepOldTabs = !!(preference && preference.value);
+    } catch (e) {
+      console.error('Couldn\'t read keepOldTabs', e);
+      keepOldTabs = false;
+    }
+    // if keepOldTabs is false, remove the 'old' tab
+    // -or-
+    // if the current tab is about:blank or about:newtab
+    // or some custom moz-extension pages
+    // we should still close the current tab even though
+    // keepOldTabs is true, because these are just
+    // interstitial tabs that are no longer used
+    if (!keepOldTabs || /^(about:)|(moz-extension:)/.test(currentTab.url)) {
+      await Tabs.remove(currentTabId);
+    }
+  } catch (e) {
+    console.error('Failed to reopen tab in container', e);
+  }
 
   return {
     cancel: true,

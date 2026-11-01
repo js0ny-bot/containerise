@@ -91,4 +91,103 @@ describe('containers', () => {
     }));
     expect(storage.data['map=x.com'].cookieStoreId).toEqual('firefox-container-new');
   });
+
+  function matchedRequest() {
+    storage.data = Object.assign({
+      'map=x.com': {
+        host: 'x.com',
+        cookieStoreId: 'firefox-container-1',
+        containerName: 'USA',
+        enabled: true,
+      },
+    }, storage.data);
+    global.browser.contextualIdentities.query.mockImplementation(() => Promise.resolve([
+      {name: 'USA', cookieStoreId: 'firefox-container-1'},
+    ]));
+  }
+
+  it('creates the replacement tab before closing the current one', async () => {
+    const order = [];
+    storage.data = {
+      'pref=keepOldTabs': {key: 'keepOldTabs', value: false},
+    };
+    matchedRequest();
+    global.browser.tabs.get.mockImplementation(() => Promise.resolve(tab()));
+    global.browser.tabs.create.mockImplementation(() => {
+      order.push('create');
+      return Promise.resolve({id: 9});
+    });
+    global.browser.tabs.remove.mockImplementation(() => {
+      order.push('remove');
+      return Promise.resolve();
+    });
+
+    const result = await webRequestListener({
+      frameId: 0,
+      tabId: 1,
+      url: 'https://x.com/',
+    });
+
+    expect(result).toEqual({cancel: true});
+    expect(order).toEqual(['create', 'remove']);
+    expect(global.browser.tabs.create).toHaveBeenCalledWith(expect.objectContaining({
+      windowId: 7,
+      cookieStoreId: 'firefox-container-1',
+    }));
+  });
+
+  it('leaves the current tab when old tabs are kept', async () => {
+    storage.data = {
+      'pref=keepOldTabs': {key: 'keepOldTabs', value: true},
+    };
+    matchedRequest();
+    global.browser.tabs.get.mockImplementation(() => Promise.resolve(tab()));
+
+    await webRequestListener({
+      frameId: 0,
+      tabId: 1,
+      url: 'https://x.com/',
+    });
+
+    expect(global.browser.tabs.create).toHaveBeenCalled();
+    expect(global.browser.tabs.remove).not.toHaveBeenCalled();
+  });
+
+  it('still closes an interstitial tab when old tabs are kept', async () => {
+    storage.data = {
+      'pref=keepOldTabs': {key: 'keepOldTabs', value: true},
+    };
+    matchedRequest();
+    global.browser.tabs.get.mockImplementation(() => Promise.resolve(tab({
+      url: 'about:blank',
+    })));
+
+    await webRequestListener({
+      frameId: 0,
+      tabId: 1,
+      url: 'https://x.com/',
+    });
+
+    expect(global.browser.tabs.remove).toHaveBeenCalledWith(1);
+  });
+
+  it('does not close the current tab when the replacement cannot be created', async () => {
+    storage.data = {
+      'pref=keepOldTabs': {key: 'keepOldTabs', value: false},
+    };
+    matchedRequest();
+    global.browser.tabs.get.mockImplementation(() => Promise.resolve(tab()));
+    global.browser.tabs.create.mockImplementation(() => Promise.reject(new Error('nope')));
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    const result = await webRequestListener({
+      frameId: 0,
+      tabId: 1,
+      url: 'https://x.com/',
+    });
+
+    expect(result).toEqual({cancel: true});
+    expect(global.browser.tabs.remove).not.toHaveBeenCalled();
+    console.error.mockRestore();
+  });
 });
