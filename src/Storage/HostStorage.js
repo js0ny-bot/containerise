@@ -23,6 +23,22 @@ class HostStorage extends PrefixStorage {
     });
   }
 
+  /**
+   * Replace the rules for one container. setAll only writes keys, so a
+   * renamed host would otherwise leave the previous rule active.
+   */
+  async replaceForContainer(cookieStoreId, maps = {}) {
+    const existing = await this.getAll();
+    const stale = Object.keys(existing).filter((host) => {
+      return existing[host].cookieStoreId === cookieStoreId
+          && !Object.prototype.hasOwnProperty.call(maps, host);
+    });
+    if (stale.length > 0) {
+      await this.remove(stale);
+    }
+    return this.setAll(maps);
+  }
+
 }
 
 export default new HostStorage();

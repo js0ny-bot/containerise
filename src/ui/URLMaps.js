@@ -92,9 +92,7 @@ class URLMaps {
       }
     }
 
-    Promise.all([
-      HostStorage.setAll(maps),
-    ]).then(() => {
+    HostStorage.replaceForContainer(this.state.selectedIdentity.cookieStoreId, maps).then(() => {
       hideLoader();
       showToast('Saved!');
       setTimeout(() => hideToast(), 3000);
