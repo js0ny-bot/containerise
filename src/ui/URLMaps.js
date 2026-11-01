@@ -36,9 +36,22 @@ class URLMaps {
     umMaps.innerHTML = '';
     this.itemsCount = 0;
 
+    const managedMaps = this.state.managedUrlMaps || {};
+    const cookieStoreId = this.state.selectedIdentity.cookieStoreId;
+
+    for (const key in managedMaps) {
+      const urlMap = managedMaps[key];
+      if (cookieStoreId === urlMap.cookieStoreId) {
+        this.addItem(urlMap.host, true);
+      }
+    }
+
     for (const key in this.state.urlMaps) {
+      if (managedMaps[key]) {
+        continue;
+      }
       const urlMap = this.state.urlMaps[key];
-      if (this.state.selectedIdentity.cookieStoreId === urlMap.cookieStoreId) {
+      if (cookieStoreId === urlMap.cookieStoreId) {
         this.addItem(urlMap.host);
       }
     }
@@ -46,11 +59,11 @@ class URLMaps {
     hideLoader();
   }
 
-  async addItem(host) {
+  async addItem(host, managed) {
     const item = umItem.cloneNode(true);
     item.setAttribute('data-id', String(this.itemsCount));
     item.classList.remove('template');
-    if(!host){
+    if (!host && !managed) {
       // Fallback to hostname of current tab
       try {
         let currentTab = (await Tabs.query({
@@ -62,8 +75,20 @@ class URLMaps {
         // console.warn("Error while guessing hostname of active tab", e);
       }
     }
-    qs('.url-input', item).value = host;
-    qs('.remove-button', item).addEventListener('click', this.removeUrlMap.bind(this, this.itemsCount, host));
+    const input = qs('.url-input', item);
+    const removeButton = qs('.remove-button', item);
+    input.value = host;
+    if (managed) {
+      item.classList.add('is-managed');
+      input.readOnly = true;
+      input.title = 'Managed by enterprise policy';
+      removeButton.disabled = true;
+      removeButton.title = 'Managed by enterprise policy';
+      removeButton.setAttribute('aria-label', 'Managed by enterprise policy');
+      removeButton.textContent = '\u{1F512}';
+    } else {
+      removeButton.addEventListener('click', this.removeUrlMap.bind(this, this.itemsCount, host));
+    }
     umMaps.appendChild(item);
     this.itemsCount++;
   }
@@ -79,6 +104,9 @@ class URLMaps {
     const maps = {};
 
     for (const item of items) {
+      if (item.classList.contains('is-managed')) {
+        continue;
+      }
       const urlInput = qs('.url-input', item);
       const host = cleanHostInput(urlInput && urlInput.value);
 
@@ -92,7 +120,8 @@ class URLMaps {
       }
     }
 
-    HostStorage.replaceForContainer(this.state.selectedIdentity.cookieStoreId, maps).then(() => {
+    const preserved = Object.keys(this.state.managedUrlMaps || {});
+    HostStorage.replaceForContainer(this.state.selectedIdentity.cookieStoreId, maps, preserved).then(() => {
       hideLoader();
       showToast('Saved!');
       setTimeout(() => hideToast(), 3000);
@@ -104,4 +133,5 @@ class URLMaps {
 export default new URLMaps({
   urlMaps: State.get('urlMaps'),
   selectedIdentity: State.get('selectedIdentity'),
+  managedUrlMaps: State.get('managedUrlMaps'),
 });

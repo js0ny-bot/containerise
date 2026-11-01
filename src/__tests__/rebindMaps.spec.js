@@ -51,6 +51,37 @@ describe('resolveMapIdentity', () => {
     });
   });
 
+  it('does not persist a managed rule when the container is found by name', () => {
+    const map = {
+      host: 'example.com',
+      cookieStoreId: 'firefox-container-gone',
+      containerName: 'Work',
+      enabled: true,
+      managed: true,
+    };
+    expect(resolveMapIdentity(map, identities)).toEqual({
+      identity: work,
+      mapToSave: null,
+    });
+  });
+
+  it('uses a managed rule\'s cookie store when the container is not in the list yet', () => {
+    const map = {
+      host: 'example.com',
+      cookieStoreId: 'firefox-container-new',
+      containerName: 'Work',
+      enabled: true,
+      managed: true,
+    };
+    expect(resolveMapIdentity(map, [])).toEqual({
+      identity: {
+        name: 'Work',
+        cookieStoreId: 'firefox-container-new',
+      },
+      mapToSave: null,
+    });
+  });
+
   it('leaves a rule alone when the named container is gone too', () => {
     const map = {
       host: 'example.com',

@@ -11,6 +11,8 @@ const openButton = qs('.ce-open-button');
 const closeButton = qs('.ce-close-button');
 const saveButton = qs('.ce-save-button');
 const hostTextarea = qs('.ce-hosts-textarea');
+const managedBlock = qs('.ce-managed');
+const managedTextarea = qs('.ce-managed-textarea');
 
 class CSVEditor {
 
@@ -41,6 +43,17 @@ class CSVEditor {
       hostMaps += `${urlMap.host} ${HOST_MAPS_SPLIT_KEY} ${urlMap.containerName}\n`;
     }
     hostTextarea.value = hostMaps;
+
+    let managedText = '';
+    const managedMaps = this.state.managedUrlMaps || {};
+    for (const key in managedMaps) {
+      const urlMap = managedMaps[key];
+      managedText += `${urlMap.host} ${HOST_MAPS_SPLIT_KEY} ${urlMap.containerName}\n`;
+    }
+    if (managedTextarea && managedBlock) {
+      managedTextarea.value = managedText;
+      managedBlock.classList.toggle('hide', !managedText);
+    }
 
     hideLoader();
   }
@@ -113,4 +126,5 @@ class CSVEditor {
 export default new CSVEditor({
   urlMaps: State.get('urlMaps'),
   identities: State.get('identities'),
+  managedUrlMaps: State.get('managedUrlMaps'),
 });

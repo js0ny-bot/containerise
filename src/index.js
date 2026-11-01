@@ -5,6 +5,7 @@ import {tabUpdatedListener, webRequestListener} from './containers';
 import {messageExternalListener} from './messageExternalListener';
 import {cleanUpTemporaryContainers, onTabCreated, onTabRemoved} from './temporaryContainers';
 import ContextualIdentity from './ContextualIdentity';
+import {getManagedHostMaps} from './managedRules';
 
 browser.webRequest.onBeforeRequest.addListener(
   webRequestListener,
@@ -28,3 +29,6 @@ cleanUpTemporaryContainers();
 
 // Reattach rules whose container was recreated with a new cookie store id.
 ContextualIdentity.rebindHostMaps();
+
+// Create any containers named by enterprise policy before the first navigation.
+getManagedHostMaps();
