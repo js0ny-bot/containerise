@@ -4,6 +4,7 @@ import '../docs/ui-preferences/default_containers.md';
 import {tabUpdatedListener, webRequestListener} from './containers';
 import {messageExternalListener} from './messageExternalListener';
 import {cleanUpTemporaryContainers, onTabCreated, onTabRemoved} from './temporaryContainers';
+import ContextualIdentity from './ContextualIdentity';
 
 browser.webRequest.onBeforeRequest.addListener(
   webRequestListener,
@@ -24,3 +25,6 @@ browser.tabs.onRemoved.addListener(onTabRemoved);
 
 // Clean up left over containers at startup
 cleanUpTemporaryContainers();
+
+// Reattach rules whose container was recreated with a new cookie store id.
+ContextualIdentity.rebindHostMaps();
