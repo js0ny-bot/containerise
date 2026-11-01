@@ -27,16 +27,17 @@ const getUrlMaps = () => {
   });
 };
 
-getIdentities();
-getUrlMaps();
-
 ContextualIdentity.addOnChangedListener(() => {
   getIdentities();
 });
 
+// Listen before the first read so a startup rebind is not missed.
 HostStorage.addOnChangedListener(() => {
   getUrlMaps();
 });
+
+getIdentities();
+getUrlMaps();
 
 Tabs.query({active: true}).then(tabs => {
   const activeTab = tabs[0];

@@ -1,5 +1,6 @@
 import HostStorage from '../Storage/HostStorage';
 import PreferenceStorage from '../Storage/PreferenceStorage';
+import {mapsToRebind} from '../rebindMaps';
 
 export const NO_CONTAINER = {
   name: 'No Container',
@@ -24,11 +25,15 @@ class ContextualIdentities {
 
   constructor() {
     this.contextualIdentities = browser.contextualIdentities;
+    // Firefox also fires onRemoved when containers vanish after a crash or
+    // when this extension is disabled. Deleting rules there drops them for
+    // good, so only an intentional remove() clears host rules. Surviving
+    // rules are rebound by container name when that container exists again.
     this.addOnRemoveListener((changeInfo) => {
       const cookieStoreId = changeInfo.contextualIdentity.cookieStoreId;
       this.cleanPreferences(cookieStoreId);
-      this.cleanMaps(cookieStoreId);
     });
+    this.addOnCreateListener(() => this.rebindHostMaps());
   }
 
   create(name) {
@@ -40,13 +45,30 @@ class ContextualIdentities {
   }
 
   /**
-   * Gets rid of a container and all corresponding rules
+   * Gets rid of a container and all corresponding rules.
+   * Host rules are cleared here, not in the onRemoved listener, so a
+   * container that disappears out from under us does not take its rules.
    */
   async remove(cookieStoreId) {
     if (cookieStoreId === NO_CONTAINER.cookieStoreId) {
       return;
     }
-    return this.contextualIdentities.remove(cookieStoreId);
+    const removed = await this.contextualIdentities.remove(cookieStoreId);
+    await this.cleanMaps(cookieStoreId);
+    return removed;
+  }
+
+  async rebindHostMaps() {
+    try {
+      const [hostMaps, identities] = await Promise.all([
+        HostStorage.getAll(),
+        this.getAll(),
+      ]);
+      const updates = mapsToRebind(hostMaps, identities);
+      await Promise.all(updates.map((map) => HostStorage.set(map)));
+    } catch (e) {
+      console.error('Couldn\'t rebind host rules to containers', e);
+    }
   }
 
   async cleanMaps(cookieStoreId) {

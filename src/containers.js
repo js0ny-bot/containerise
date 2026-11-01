@@ -4,6 +4,7 @@ import Tabs from './Tabs';
 import PreferenceStorage from './Storage/PreferenceStorage';
 import {filterByKey} from './utils';
 import {buildDefaultContainer} from './defaultContainer';
+import {resolveMapIdentity} from './rebindMaps';
 
 const IGNORED_URLS_REGEX = /^(about|moz-extension|file|javascript|data|chrome):/;
 
@@ -78,7 +79,11 @@ async function handle(url, tabId) {
     return {};
   }
 
-  const hostIdentity = identities.find((identity) => identity.cookieStoreId === hostMap.cookieStoreId);
+  const resolved = resolveMapIdentity(hostMap, identities);
+  if (resolved.mapToSave) {
+    Storage.set(resolved.mapToSave);
+  }
+  const hostIdentity = resolved.identity;
   let targetCookieStoreId;
 
   if (!hostIdentity) {
