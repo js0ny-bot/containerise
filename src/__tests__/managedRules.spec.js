@@ -98,7 +98,7 @@ describe('managed rules', () => {
       managed: true,
     });
     expect(maps['!*.example.org'].cookieStoreId).toEqual('firefox-container-work');
-    expect(maps['@.+\\.example\\.net$'].managed).toBe(true);
+    expect(maps['@.+\\.Example\\.NET$'].managed).toBe(true);
     expect(global.browser.contextualIdentities.create).not.toHaveBeenCalled();
     expect(global.browser.storage.local.set).not.toHaveBeenCalled();
     await expect(HostStorage.getAll()).resolves.toEqual({});
@@ -240,6 +240,34 @@ describe('managed rules', () => {
       host: 'example.com',
       cookieStoreId: 'firefox-container-work',
       managed: true,
+    });
+  });
+
+  it('keeps \\S and \\D in a managed regex', async () => {
+    identities({name: 'Work', cookieStoreId: 'firefox-container-work'});
+    storage.managedData = {
+      rules: [
+        {host: '@^https://digits\\.example/\\D+$', container: 'Work'},
+        {host: '@^https://spaces\\.example/\\S+$', container: 'Work'},
+      ],
+    };
+
+    const maps = await getManagedHostMaps();
+
+    expect(maps['@^https://digits\\.example/\\D+$']).toMatchObject({
+      host: '@^https://digits\\.example/\\D+$',
+      cookieStoreId: 'firefox-container-work',
+      managed: true,
+    });
+    expect(maps['@^https://spaces\\.example/\\S+$'].host).toBe('@^https://spaces\\.example/\\S+$');
+    expect(global.browser.storage.local.set).not.toHaveBeenCalled();
+
+    await expect(getHostMap('https://DIGITS.example/Ab')).resolves.toMatchObject({
+      host: '@^https://digits\\.example/\\D+$',
+    });
+    await expect(getHostMap('https://digits.example/12')).resolves.toEqual({});
+    await expect(getHostMap('https://spaces.example/File')).resolves.toMatchObject({
+      host: '@^https://spaces\\.example/\\S+$',
     });
   });
 

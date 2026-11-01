@@ -7,7 +7,22 @@ export const qs = (selector, node) => (node || document).querySelector(selector)
 export const qsAll = (selector, node) => (node || document).querySelectorAll(selector);
 export const ce = (tagName) => document.createElement(tagName);
 
-export const cleanHostInput = (value = '') => value.trim().toLowerCase();
+// A glob is compiled as a regular expression, so a letter escape such as
+// `\S` has to be left as written. Other characters can be lowercased.
+const lowercaseKeepingEscapes = (value) => value.replace(/\\[A-Za-z]|[A-Z]/g, (token) => {
+  return token[0] === '\\' ? token : token.toLowerCase();
+});
+
+export const cleanHostInput = (value = '') => {
+  const trimmed = value.trim();
+  if (trimmed[0] === PREFIX_REGEX) {
+    return trimmed;
+  }
+  if (trimmed[0] === PREFIX_GLOB) {
+    return lowercaseKeepingEscapes(trimmed);
+  }
+  return trimmed.toLowerCase();
+};
 
 const getDomain = (src = '') => src.split('/')[0];
 const getPath = (src = '') => src.replace(/^.+?\//, '');
@@ -85,8 +100,7 @@ export const matchesSavedMap = (url, matchDomainOnly, {host}) => {
   if (host[0] === PREFIX_REGEX) {
     const regex = host.substr(1);
     try {
-      // Rules are stored in lowercase, so the test has to ignore case or
-      // an uppercase character in the URL never matches.
+      // Case-insensitive, without lowercasing the source: that would turn `\S` into `\s`.
       return new RegExp(regex, 'i').test(toMatch);
     } catch (e) {
       console.error('couldn\'t test regex', regex, e);
