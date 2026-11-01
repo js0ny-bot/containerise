@@ -6,7 +6,7 @@ import {filterByKey} from './utils';
 import {buildDefaultContainer} from './defaultContainer';
 import {resolveMapIdentity} from './rebindMaps';
 
-const IGNORED_URLS_REGEX = /^(about|moz-extension|file|javascript|data|chrome):/;
+const IGNORED_URLS_REGEX = /^(about|moz-extension|file|javascript|data|chrome|view-source):/;
 
 /**
  * Keep track of the tabs we're creating
