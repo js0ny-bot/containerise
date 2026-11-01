@@ -37,4 +37,17 @@
       opacity: 1;
     }
   }
+
+  &.is-managed {
+    input {
+      opacity: 0.75;
+    }
+
+    button {
+      opacity: 1;
+      pointer-events: none;
+      font-size: 12px;
+      line-height: 21px;
+    }
+  }
 }

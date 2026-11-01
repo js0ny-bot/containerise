@@ -171,6 +171,34 @@ describe('containers', () => {
     expect(global.browser.tabs.remove).toHaveBeenCalledWith(1);
   });
 
+  it('opens a managed rule without storing it locally', async () => {
+    global.browser.storage.managed = {
+      get: jest.fn(() => Promise.resolve({
+        rules: [{host: 'x.com', container: 'USA'}],
+      })),
+    };
+    global.browser.contextualIdentities.query.mockImplementation(() => Promise.resolve([
+      {name: 'USA', cookieStoreId: 'firefox-container-usa'},
+    ]));
+    storage.data = {
+      'pref=keepOldTabs': {key: 'keepOldTabs', value: true},
+    };
+    global.browser.tabs.get.mockImplementation(() => Promise.resolve(tab()));
+
+    const result = await webRequestListener({
+      frameId: 0,
+      tabId: 1,
+      url: 'https://x.com/',
+    });
+
+    expect(result).toEqual({cancel: true});
+    expect(global.browser.tabs.create).toHaveBeenCalledWith(expect.objectContaining({
+      cookieStoreId: 'firefox-container-usa',
+    }));
+    expect(storage.set).not.toHaveBeenCalled();
+    expect(storage.data['map=x.com']).toBeUndefined();
+  });
+
   it('does not reopen a view-source navigation', async () => {
     storage.data = {
       'pref=defaultContainer': {key: 'defaultContainer', value: true},

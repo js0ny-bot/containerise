@@ -27,6 +27,55 @@ Install the latest release for Firefox from [AMO](https://addons.mozilla.org/en-
 
 
 
+# Enterprise managed rules
+
+Firefox enterprise policy can supply rules that the popup will not edit. The policy key is `3rdparty.Extensions.<extension id>`. Firefox copies that object into `browser.storage.managed`. No `managed_schema.json` is required. A change to the policy applies after the browser restarts.
+
+The extension id shipped here is `containerise@kinte.sh`. A fork has to use its own id in the manifest, and the policy key has to be that same id. This repository does not change the id.
+
+```json
+{
+  "policies": {
+    "3rdparty": {
+      "Extensions": {
+        "containerise@kinte.sh": {
+          "rules": [
+            {"host": "example.com", "container": "Work"},
+            {"host": "!*.example.org", "container": "Work"},
+            {"host": "@.+\\.example\\.net$", "container": "Personal"}
+          ]
+        }
+      }
+    }
+  }
+}
+```
+
+`host` uses the same syntax as a rule typed in the popup: a plain host, a glob prefixed with `!`, or a regular expression prefixed with `@`. `container` is the container's name, not its cookie store id. `No Container` leaves the site in the default cookie store. If a named container does not exist yet, it is created. Managed rules are not written into the extension's own storage. Where a managed rule and a user rule use the same host, the managed rule wins. A more specific user rule can still match ahead of a broader managed rule. If the policy lists the same host twice, the later entry wins.
+
+On NixOS, `programs.firefox.policies` is that `policies` object:
+
+```nix
+programs.firefox.policies."3rdparty".Extensions."containerise@kinte.sh".rules = [
+  {
+    host = "example.com";
+    container = "Work";
+  }
+  {
+    host = "!*.example.org";
+    container = "Work";
+  }
+  {
+    host = "@.+\\.example\\.net$";
+    container = "Personal";
+  }
+];
+```
+
+Managed rules are shown locked in the popup and as a read-only list in the CSV editor. Saving either one leaves them unchanged.
+
+
+
 # Development
 
 ## Available Scripts

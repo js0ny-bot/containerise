@@ -20,13 +20,26 @@ export function resolveMapIdentity(map, identities) {
   const byName = map.containerName
       ? identities.find((identity) => identity.name === map.containerName)
       : null;
-  if (!byName) {
-    return {identity: null, mapToSave: null};
+  if (byName) {
+    // Managed rules are resolved on read and must not be copied into
+    // storage.local, including when the cookie store id has changed.
+    return {
+      identity: byName,
+      mapToSave: map.managed ? null : Object.assign({}, map, {cookieStoreId: byName.cookieStoreId}),
+    };
   }
-  return {
-    identity: byName,
-    mapToSave: Object.assign({}, map, {cookieStoreId: byName.cookieStoreId}),
-  };
+  if (map.managed && map.cookieStoreId) {
+    // The container may have been created while the identity list was
+    // still being read, so it is not in `identities` yet.
+    return {
+      identity: {
+        name: map.containerName,
+        cookieStoreId: map.cookieStoreId,
+      },
+      mapToSave: null,
+    };
+  }
+  return {identity: null, mapToSave: null};
 }
 
 export function mapsToRebind(hostMaps, identities) {

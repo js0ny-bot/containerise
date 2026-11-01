@@ -58,6 +58,18 @@ describe('HostStorage.replaceForContainer', () => {
     expect(storage.data['map=other.example']).toEqual(rule('other.example', 'c2', 'Personal'));
   });
 
+  it('keeps a preserved host that the saved list does not include', async () => {
+    storage.data = {
+      'map=shadowed.example': rule('shadowed.example', 'c1', 'Work'),
+      'map=old.example': rule('old.example', 'c1', 'Work'),
+    };
+
+    await HostStorage.replaceForContainer('c1', {}, ['shadowed.example']);
+
+    expect(storage.data['map=shadowed.example']).toBeDefined();
+    expect(storage.data['map=old.example']).toBeUndefined();
+  });
+
   it('removes every rule for the container when the saved list is empty', async () => {
     storage.data = {
       'map=old.example': rule('old.example', 'c1', 'Work'),

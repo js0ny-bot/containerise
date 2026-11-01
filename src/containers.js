@@ -5,6 +5,7 @@ import PreferenceStorage from './Storage/PreferenceStorage';
 import {filterByKey} from './utils';
 import {buildDefaultContainer} from './defaultContainer';
 import {resolveMapIdentity} from './rebindMaps';
+import {getHostMap} from './managedRules';
 
 const IGNORED_URLS_REGEX = /^(about|moz-extension|file|javascript|data|chrome|view-source):/;
 
@@ -78,7 +79,7 @@ async function handle(url, tabId) {
   }
   let preferences = await PreferenceStorage.getAll(true);
   let [hostMap, identities, currentTab] = await Promise.all([
-    Storage.get(url, preferences.matchDomainOnly),
+    getHostMap(url, preferences.matchDomainOnly),
     ContextualIdentity.getAll(),
     Tabs.get(tabId),
   ]);

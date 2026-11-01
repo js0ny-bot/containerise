@@ -32,7 +32,8 @@
   float: right;
 }
 
-.ce-hosts-textarea {
+.ce-hosts-textarea,
+.ce-managed-textarea {
   background: transparent;
   width: 100%;
   min-height: 200px;
@@ -41,4 +42,16 @@
   padding: 6px;
   font-family: monospace;
   border: 1px solid $border-color;
+}
+
+.ce-managed {
+  margin-top: 1rem;
+
+  &.hide {
+    display: none;
+  }
+
+  textarea {
+    min-height: 80px;
+  }
 }
